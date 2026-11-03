@@ -1,0 +1,38 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Virtual environments
+.venv/
+myenv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# Application secrets
+.streamlit/secrets.toml
+
+# Runtime data
+data/uploads/*
+data/chroma_db/*
+data/semantic_search.sqlite3
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Local tooling and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
