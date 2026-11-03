@@ -14,7 +14,7 @@ from core.keyword_engine import KeywordEngine
 from core.evaluation import metrics, summarize
 from core.semantic_engine import SemanticEngine
 
-st.set_page_config(page_title='AI-Powered Semantic Search: Keyword vs Vector Search Using ChromaDB',page_icon='🔎',layout='wide')
+st.set_page_config(page_title='Case Study: Traditional Keyword Search vs AI-Powered Semantic Search Using ChromaDB',page_icon='🔎',layout='wide')
 st.markdown('''<style>
 :root{--ink:#17233e;--muted:#66738d;--line:#e2e8f2;--blue:#435fca;--panel:#fff;--canvas:#f4f6fb}
 html,body,[class*="css"]{font-family:Inter,"Segoe UI",sans-serif;color:var(--ink)}
