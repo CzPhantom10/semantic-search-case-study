@@ -1,5 +1,8 @@
 # Academic report outline
 
+**Case study title:** Case Study: Traditional Keyword Search vs AI-Powered Semantic Search Using ChromaDB
+**Application:** Semantic Search Studio
+
 ## Abstract
 Problem, research question, corpus, methods, principal measured findings, and limitations. Fill findings only after running a labeled experiment.
 

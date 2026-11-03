@@ -8,15 +8,19 @@ For a fixed document collection, query set, and chunking configuration, how do B
 
 Use the same uploaded source files and chunk boundaries for both methods. PDF page numbers are one-based; DOCX/TXT have no reliable page model and are displayed without page values. The default chunk window is 500 whitespace-delimited words with 75 words of overlap; it is sentence-aware except when a sentence exceeds the window. This is a transparent, reproducible word-count heuristic, not a tokenizer-specific 500-token guarantee. Record any changes to chunk size/overlap and re-index before an experiment.
 
+## Query set
+
+Record each query's category, such as paraphrase, exact wording, identifier, or domain terminology. Review per-category results as well as the complete experiment to identify where each retrieval method performs well. Do not present small query groups as broadly representative.
+
 ## Methods
 
 BM25 uses lowercase Unicode word tokens, `k1=1.5`, `b=0.75`, and standard positive IDF. Semantic retrieval uses local Sentence Transformers `all-MiniLM-L6-v2`, normalized vectors, and ChromaDB cosine distance. Smaller cosine distance indicates closer vectors; it is neither a probability nor a relevance percentage. Both retrieve from the same corpus and use the same top K.
 
 ## Judgments and metrics
 
-Create natural-language test queries and label relevant chunks in the Evaluation page. Current UI judgments are binary in practice (relevant=2, non-relevant=0), while the metric implementation supports grades 0–3 for NDCG. Unjudged chunks are treated as grade 0; consequently, judge the corpus sufficiently before interpreting metrics. Precision@K divides hits by configured K, including when fewer than K results exist. Recall is undefined when there are no known relevant chunks and is omitted from averages. MRR uses the first relevant retrieved item. NDCG uses gain `2^grade-1` and logarithmic rank discount.
+Create natural-language test queries and label chunks in the Evaluation page using grades 0–3; passages can also remain explicitly unjudged. Coverage is saved with each query result. Unjudged chunks are treated as grade 0 by the current metrics, so incomplete labels can bias precision, recall, MRR, and NDCG. Judge every corpus chunk for every query before making formal claims. Precision@K divides hits by configured K, including when fewer than K results exist. Recall is undefined when there are no known relevant chunks and is omitted from averages. MRR uses the first relevant retrieved item. NDCG uses gain `2^grade-1` and logarithmic rank discount.
 
-Latency values are observed, not predicted. Keyword latency includes query scoring plus per-request in-memory index construction. Chroma latency excludes embedding generation and model loading. Do not claim an end-to-end speed advantage from these differently scoped measurements; for that comparison, time embedding and retrieval together in a separate protocol. Repeat runs and report variability for formal conclusions.
+Latency values are observed, not predicted. Retrieval-only time covers BM25 scoring or the Chroma query. End-to-end query time covers BM25 in-memory index construction plus scoring, or semantic query embedding plus Chroma retrieval. Model loading and shared SQLite chunk loading are excluded from both scopes. Each is repeated and stored with mean and population standard deviation. Report both scopes and the hardware/software environment; do not collapse them into a single speed claim.
 
 ## Academic context
 

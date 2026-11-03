@@ -1,12 +1,16 @@
 # Case Study: Traditional Keyword Search vs AI-Powered Semantic Search Using ChromaDB
 
+**Application:** Semantic Search Studio — a local document search workspace for comparing BM25 keyword retrieval with embedding-based semantic retrieval.
+
+The application is presented as a document search product. Its academic motivation, research question, methodology, and reporting rules are documented in [`docs/project_context.md`](docs/project_context.md).
+
 A local Streamlit case study comparing traditional BM25 keyword retrieval with embedding-based semantic retrieval using Sentence Transformers and persistent ChromaDB. Upload your own PDF, DOCX, or TXT corpus, compare rankings side by side, and evaluate both methods against relevance judgments you provide. No paid API key or hosted LLM is required.
 
 ## Features
 
 - PDF extraction with one-based page metadata, DOCX paragraph/table extraction, and TXT extraction with UTF-8 replacement for malformed bytes.
 - Sentence-aware word-window chunks, local `all-MiniLM-L6-v2` embeddings, persistent ChromaDB cosine search, and a BM25 baseline.
-- Comparison and method-specific search, search history, document removal, query creation, manual relevance labels, Precision@K, Recall@K, MRR, NDCG@K, latency, charts, and CSV export.
+- Comparison and method-specific search, search history, document removal, categorized queries, graded human relevance judgments, Precision@K, Recall@K, MRR, NDCG@K, retrieval-only and end-to-end latency, charts, and per-experiment CSV export.
 - SQLite metadata/history/judgment persistence; independent Chroma vector persistence.
 - Separate RDFLib triple demonstration (`python utils/rdf_demo.py`) and academic notes distinguishing RDF/OWL reasoning from vector similarity.
 
@@ -37,7 +41,7 @@ If PowerShell blocks activation, use `Set-ExecutionPolicy -Scope Process -Execut
 pytest -q
 ```
 
-Tests needing PyMuPDF, python-docx, or ChromaDB skip when those packages are unavailable. The Chroma test uses tiny deterministic vectors and requires no model download. Tests were authored with the project but could not be run in the current development shell because Python is not installed/on PATH.
+Tests that need PyMuPDF, python-docx, or ChromaDB skip when those packages are unavailable. The Chroma test uses tiny deterministic vectors and requires no embedding-model download. Run the suite from the project root after installing the dependencies above.
 
 ## Configuration
 
@@ -53,12 +57,14 @@ Defaults are in `config.py`; copy `.env.example` to `.env` and edit it to set ov
 app.py                    Streamlit navigation, forms, charts and result views
 config.py                 Local paths and environment configuration
 core/                     Extraction, chunking, embeddings, BM25, Chroma, metrics
+services/                 Search orchestration and timing measurements
+ui/                       Shared components and application visual system
 database/db_manager.py    SQLite schema and persistence operations
-pages/                    Reserved for future Streamlit page split
-assets/                   Reserved for additional styling/static assets
+ui/                       Shared Streamlit presentation components
 samples/                  Small starter document and query examples
 tests/                    Unit tests for processing, retrieval, metrics, persistence
 docs/                     Architecture, method, evaluation guide, report outline
+report/                   Workspace reserved for the final academic report
 utils/rdf_demo.py         Independent RDF triple exercise
 data/                     Runtime uploads, vector index, and SQLite database
 ```
@@ -67,7 +73,7 @@ data/                     Runtime uploads, vector index, and SQLite database
 
 RDF/OWL provide explicit symbolic facts, schemas, and possible logical inference; embeddings represent distributional relationships as dense vectors. They answer related but distinct questions. ChromaDB stores vectors and metadata; it is not an RDF graph store or an ontology reasoner. Consult `docs/methodology.md` and `docs/evaluation_guide.md` before reporting results.
 
-Latency is scoped carefully: BM25 currently rebuilds its in-memory index for each request; the semantic measurement covers Chroma retrieval but excludes model load and query embedding. The evaluation repeats retrieval according to `SEMSEARCH_LATENCY_RUNS` (default 3) and reports mean and standard deviation. These values are not a like-for-like end-to-end performance benchmark. Evaluation runs and configuration, judgments, and search history persist in SQLite; tables are exportable. No experimental findings or citations are supplied as facts.
+Latency is reported in two scopes. Retrieval-only timing covers BM25 scoring or the Chroma query. End-to-end query timing includes BM25's per-query in-memory index build, or semantic query embedding plus Chroma retrieval. Model loading and shared SQLite chunk loading are excluded from both scopes. Evaluation repeats each measurement according to `SEMSEARCH_LATENCY_RUNS` (default 3) and reports mean and standard deviation. Results are viewed and exported one experiment at a time, with query-level judgment coverage recorded. Evaluation runs, configuration, judgments, and search history persist in SQLite. No experimental findings or citations are supplied as facts.
 
 ## Troubleshooting
 
@@ -79,4 +85,4 @@ Latency is scoped carefully: BM25 currently rebuilds its in-memory index for eac
 
 ## Known limitations and future work
 
-OCR, optional grounded LLM answers, re-index-in-place, end-to-end latency timing, and a hybrid search mode are not implemented. DOCX and TXT do not provide page numbers. Manual judgments require careful coverage to avoid treating unjudged relevant passages as irrelevant. The initial evaluation UI uses binary labels, while NDCG supports graded labels in the metric module.
+OCR, optional grounded LLM answers, re-index-in-place, and hybrid search are not implemented. DOCX and TXT do not provide page numbers. Metrics from incomplete relevance judgments can be biased; review recorded judgment coverage before reporting findings. The exact academic case study title and durable requirements baseline are in `docs/project_context.md`.
