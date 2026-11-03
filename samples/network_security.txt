@@ -1,0 +1,1 @@
+Network security techniques help prevent cyberattacks. Strong passwords, multi-factor authentication, software updates, firewalls, and cautious handling of email attachments help protect computers from hackers. Organizations also use encryption and intrusion detection to reduce unauthorized access.
