@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 import config
-from ui.components import page_header, render_navigation, render_upload_inventory, result_card, score_guide
+from ui.components import page_header, render_navigation, render_upload_inventory, result_card, score_guide, set_workspace_page
 from ui.styles import apply_styles
 from services.search_service import run_search
 from database.db_manager import Database, utcnow
@@ -15,7 +15,9 @@ from core.embedding_engine import EmbeddingEngine
 from core.vector_store import VectorStore
 from core.evaluation import metrics, summarize
 
-st.set_page_config(page_title='Semantic Search Studio',page_icon='🔎',layout='wide')
+st.set_page_config(page_title='Semantic Search Studio',page_icon='🔎',layout='wide',initial_sidebar_state='collapsed')
+if 'studio_navigation_page' not in st.session_state:
+    st.session_state['studio_navigation_page']='Overview'
 apply_styles()
 @st.cache_resource
 def get_services():
@@ -23,18 +25,22 @@ def get_services():
 try: db,emb,store=get_services()
 except Exception as e:
     st.error(f'Could not initialize local search services: {e}');st.info('Install requirements.txt, then restart Streamlit.');st.stop()
-with st.sidebar:
-    st.markdown('## ◈ Semantic Search Studio');st.caption('LOCAL DOCUMENT WORKSPACE')
-    st.divider()
+header_brand,header_nav=st.columns([2.2,1])
+with header_brand:
+    st.markdown("<div class='app-brand'><span class='app-brand-mark'>◈</span> Semantic Search Studio</div><div class='app-brand-caption'>Local document workspace</div>",unsafe_allow_html=True)
+with header_nav:
     page=render_navigation()
-    st.divider();st.caption(f'Model: `{config.MODEL_NAME}`');st.caption('Local data stays in `data/`.')
+st.divider()
 
 if page=='Overview':
-    counts=db.counts();st.markdown('<div class="hero"><div class="eyebrow">YOUR DOCUMENT WORKSPACE</div><h1>Search your library with confidence.</h1><p>Bring your files together, find useful passages, and compare keyword and semantic results in one place.</p></div>',unsafe_allow_html=True)
+    counts=db.counts();st.markdown('<div class="hero"><div class="eyebrow">DOCUMENT SEARCH WORKSPACE</div><h1>Search your documents.</h1><p>Upload a library, find passages with BM25 or semantic similarity, and compare where each method helps.</p></div>',unsafe_allow_html=True)
+    st.button('Add documents' if counts['documents']==0 else 'Add more documents',type='primary',
+        on_click=set_workspace_page,args=('Upload Documents',))
     if counts['documents']==0:
-        st.info('Your workspace is ready. Choose **Upload Documents** in the sidebar to add your first PDF, DOCX, or TXT file.')
-    cols=st.columns(5)
-    for col,label,val in zip(cols,['Indexed documents','Indexed chunks','Searches run','Vector store','Embedding model'],[counts['documents'],counts['chunks'],counts['searches'],'Connected',config.MODEL_NAME]):col.metric(label,val)
+        st.caption('Your library is empty. Add PDF, DOCX, or TXT files to get started.')
+    cols=st.columns(3)
+    for col,label,val in zip(cols,['Documents','Chunks','Searches'],[counts['documents'],counts['chunks'],counts['searches']]):col.metric(label,val)
+    st.caption(f"Vector store connected · {config.MODEL_NAME} · local inference")
     st.subheader('Two ways to retrieve')
     a,b=st.columns(2)
     with a,st.container(border=True):
@@ -185,10 +191,10 @@ elif page=='Evaluation':
         df=pd.DataFrame(display_rows);st.dataframe(df,use_container_width=True,hide_index=True)
         means=df.groupby('method',as_index=False).mean(numeric_only=True)
         metric=st.selectbox('Quality metric',['precision_at_k','recall_at_k','mrr','ndcg_at_k'],format_func=lambda x:{'precision_at_k':'Precision@K','recall_at_k':'Recall@K','mrr':'MRR','ndcg_at_k':'NDCG@K'}[x])
-        quality,ret,e2e=st.columns(3)
+        quality,ret=st.columns(2)
         with quality:st.plotly_chart(px.bar(means,x='method',y=metric,title=metric.replace('_',' ').upper(),range_y=[0,1]),use_container_width=True)
         with ret:st.plotly_chart(px.bar(means,x='method',y='latency_ms',error_y='latency_std_ms',title='Retrieval only · mean ± SD (ms)'),use_container_width=True)
-        with e2e:st.plotly_chart(px.bar(means,x='method',y='end_to_end_ms',error_y='end_to_end_std_ms',title='End to end · mean ± SD (ms)'),use_container_width=True)
+        st.plotly_chart(px.bar(means,x='method',y='end_to_end_ms',error_y='end_to_end_std_ms',title='End to end · mean ± SD (ms)'),use_container_width=True)
         coverage=df.groupby('query',as_index=False)['judgment_coverage'].first()
         if not coverage.empty and coverage['judgment_coverage'].min()<1:
             st.warning('Some query judgments do not cover every corpus chunk. Recall and ranking metrics may be biased; review judgment coverage before reporting results.')
@@ -206,5 +212,5 @@ elif page=='Search History':
         st.download_button('Export history CSV',df.drop(columns=['results_json']).to_csv(index=False),'search_history.csv','text/csv')
     else:st.caption('Search history will appear after your first query.')
 elif page=='Settings':
-    st.markdown('## Settings');st.json({'embedding_model':config.MODEL_NAME,'embedding_dimensions':emb.dimension,'device':str(getattr(emb.model,'device','auto')),'chunk_size_words':config.CHUNK_SIZE,'chunk_overlap_words':config.CHUNK_OVERLAP,'default_top_k':config.DEFAULT_TOP_K,'latency_runs':config.LATENCY_RUNS,'distance_metric':'cosine','chroma_path':str(config.CHROMA_DIR),'sqlite_path':str(config.DB_PATH)})
+    st.markdown('## Settings');st.json({'embedding_model':config.MODEL_NAME,'embedding_dimensions':384 if config.MODEL_NAME=='all-MiniLM-L6-v2' else ('loaded' if emb.is_loaded else 'loads on first semantic search'),'device':str(getattr(emb.model,'device','auto')) if emb.is_loaded else (config.DEVICE or 'auto selected at inference'),'chunk_size_words':config.CHUNK_SIZE,'chunk_overlap_words':config.CHUNK_OVERLAP,'default_top_k':config.DEFAULT_TOP_K,'latency_runs':config.LATENCY_RUNS,'distance_metric':'cosine','chroma_path':str(config.CHROMA_DIR),'sqlite_path':str(config.DB_PATH)})
     st.caption('Configure SEMSEARCH_MODEL, SEMSEARCH_CHUNK_SIZE, SEMSEARCH_CHUNK_OVERLAP, SEMSEARCH_TOP_K, SEMSEARCH_LATENCY_RUNS or SEMSEARCH_DEVICE, then restart. Re-index after changing model or chunk settings.')

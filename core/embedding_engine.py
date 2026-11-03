@@ -4,6 +4,8 @@ class EmbeddingEngine:
     def __init__(self, model_name='all-MiniLM-L6-v2', device=''):
         self.model_name=model_name; self.device=device or None; self._model=None
     @property
+    def is_loaded(self): return self._model is not None
+    @property
     def model(self):
         if self._model is None:
             from sentence_transformers import SentenceTransformer

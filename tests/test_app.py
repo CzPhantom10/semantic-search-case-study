@@ -17,12 +17,12 @@ def test_overview_page_renders_without_streamlit_exception():
     try:
         result=AppTest.from_file(str(app),default_timeout=30).run()
         assert not result.exception
-        assert any('Search your library with confidence' in item.value for item in result.markdown)
-        result.radio[1].set_value('Upload Documents').run()
+        assert any('Search your documents.' in item.value for item in result.markdown)
+        result.selectbox[0].set_value('Upload Documents').run()
         assert not result.exception
         assert any('Your indexed documents' in item.value for item in result.markdown)
         assert any(filename in str(table.value) for table in result.dataframe)
-        result.radio[2].set_value('Compare Search').run()
+        result.selectbox[0].set_value('Compare Search').run()
         assert not result.exception
         assert any('How to read the scores' in item.label for item in result.expander)
     finally:

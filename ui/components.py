@@ -6,23 +6,21 @@ import pandas as pd
 import streamlit as st
 
 
-def _select_workspace_page(widget_key):
-    st.session_state['workspace_page']=st.session_state[widget_key]
-
-
 def render_navigation():
-    """Render grouped product navigation and return the active workspace page."""
-    groups=[('HOME',['Overview'],'nav_home'),
-        ('LIBRARY',['Document Library','Upload Documents'],'nav_library'),
-        ('SEARCH',['Semantic Search','Keyword Search','Compare Search'],'nav_search'),
-        ('INSIGHTS',['Evaluation','Search History'],'nav_insights'),
-        ('PREFERENCES',['Settings'],'nav_preferences')]
-    current=st.session_state.get('workspace_page','Overview')
-    for label,options,key in groups:
-        st.caption(label)
-        st.radio(label,options,index=options.index(current) if current in options else 0,
-            label_visibility='collapsed',key=key,on_change=_select_workspace_page,args=(key,))
-    return st.session_state.get('workspace_page','Overview')
+    """Render the application workspace selector in the top navigation bar."""
+    options=['Overview','Document Library','Upload Documents','Semantic Search',
+        'Keyword Search','Compare Search','Evaluation','Search History','Settings']
+    icons={'Overview':'⌂','Document Library':'▤','Upload Documents':'＋',
+        'Semantic Search':'◉','Keyword Search':'⌕','Compare Search':'⇄',
+        'Evaluation':'▥','Search History':'◷','Settings':'⚙'}
+    return st.selectbox('Workspace',options,
+        format_func=lambda page:f"{icons[page]}  {page}",
+        label_visibility='visible',key='studio_navigation_page')
+
+
+def set_workspace_page(page):
+    """Navigate from a dashboard call to action before the next Streamlit run."""
+    st.session_state['studio_navigation_page']=page
 
 
 def result_card(item, rank, semantic=False, query=''):
