@@ -1,4 +1,4 @@
-# Semantic Search Lab
+# AI-Powered Semantic Search: Keyword vs Vector Search Using ChromaDB
 
 A local Streamlit case study comparing traditional BM25 keyword retrieval with embedding-based semantic retrieval using Sentence Transformers and persistent ChromaDB. Upload your own PDF, DOCX, or TXT corpus, compare rankings side by side, and evaluate both methods against relevance judgments you provide. No paid API key or hosted LLM is required.
 
