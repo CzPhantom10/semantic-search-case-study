@@ -6,6 +6,8 @@ The application is presented as a document search product. Its academic motivati
 
 A local Streamlit case study comparing traditional BM25 keyword retrieval with embedding-based semantic retrieval using Sentence Transformers and persistent ChromaDB. Upload your own PDF, DOCX, or TXT corpus, compare rankings side by side, and evaluate both methods against relevance judgments you provide. No paid API key or hosted LLM is required.
 
+The editable [project report progress draft](report/Semantic_Search_Studio_Project_Report_Progress_Draft.docx) follows the supplied academic report structure and records the implementation status as of 4 November 2026. Empirical comparison results remain pending a study corpus, human relevance judgments, and completed experiments.
+
 ## Features
 
 - PDF extraction with one-based page metadata, DOCX paragraph/table extraction, and TXT extraction with UTF-8 replacement for malformed bytes.
