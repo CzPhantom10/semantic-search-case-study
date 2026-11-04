@@ -29,8 +29,10 @@ def test_overview_page_renders_without_streamlit_exception():
         result.text_input[0].set_value(search_query).run()
         result.button[0].click().run()
         assert not result.exception
-        result.radio[0].set_value('Compare Search').run()
+        next_compare=next(button for button in result.button if button.label=='Next: compare both methods')
+        next_compare.click().run()
         assert not result.exception
+        assert any('Compare methods' in item.value for item in result.markdown)
         assert any('How to read the scores' in item.label for item in result.expander)
     finally:
         db.delete_document(document_id)
