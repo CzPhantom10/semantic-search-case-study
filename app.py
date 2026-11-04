@@ -15,7 +15,7 @@ from core.embedding_engine import EmbeddingEngine
 from core.vector_store import VectorStore
 from core.evaluation import metrics, summarize
 
-st.set_page_config(page_title='Semantic Search Studio',page_icon='🔎',layout='wide',initial_sidebar_state='collapsed')
+st.set_page_config(page_title='Semantic Search Studio',page_icon='🔎',layout='wide',initial_sidebar_state='expanded')
 if 'studio_navigation_page' not in st.session_state:
     st.session_state['studio_navigation_page']='Overview'
 apply_styles()
@@ -25,30 +25,64 @@ def get_services():
 try: db,emb,store=get_services()
 except Exception as e:
     st.error(f'Could not initialize local search services: {e}');st.info('Install requirements.txt, then restart Streamlit.');st.stop()
-header_brand,header_nav=st.columns([2.2,1])
+counts=db.counts()
+history=db.history(500)
+methods_by_query={}
+for item in history:
+    methods_by_query.setdefault(item['query_text'],set()).add(item['search_method'])
+has_search=bool(history)
+has_comparison=any({'Compare · Keyword','Compare · Semantic'}.issubset(methods) for methods in methods_by_query.values())
+has_experiment=bool(db.experiments())
+navigation_pages=['Overview','Document Library','Upload Documents']
+if counts['documents']:
+    navigation_pages.extend(['Semantic Search','Keyword Search'])
+if has_search:
+    navigation_pages.append('Compare Search')
+if has_comparison:
+    navigation_pages.append('Evaluation')
+navigation_pages.extend(['Search History','Settings'])
+with st.sidebar:
+    st.markdown("## <span class='app-brand-mark'>◈</span> Semantic Search Studio",unsafe_allow_html=True)
+    st.caption('LOCAL DOCUMENT WORKSPACE')
+    st.divider()
+    page=render_navigation(navigation_pages)
+    st.divider()
+    st.caption(f"{counts['documents']} indexed documents · local data")
+header_brand,header_status=st.columns([2,1])
 with header_brand:
     st.markdown("<div class='app-brand'><span class='app-brand-mark'>◈</span> Semantic Search Studio</div><div class='app-brand-caption'>Local document workspace</div>",unsafe_allow_html=True)
-with header_nav:
-    page=render_navigation()
+with header_status:
+    st.caption(f"{counts['documents']} documents · {counts['chunks']} passages")
 st.divider()
 
 if page=='Overview':
-    counts=db.counts();st.markdown('<div class="hero"><div class="eyebrow">DOCUMENT SEARCH WORKSPACE</div><h1>Search your documents.</h1><p>Upload a library, find passages with BM25 or semantic similarity, and compare where each method helps.</p></div>',unsafe_allow_html=True)
-    st.button('Add documents' if counts['documents']==0 else 'Add more documents',type='primary',
-        on_click=set_workspace_page,args=('Upload Documents',))
-    if counts['documents']==0:
-        st.caption('Your library is empty. Add PDF, DOCX, or TXT files to get started.')
+    st.markdown('<div class="hero"><div class="eyebrow">DOCUMENT SEARCH WORKSPACE</div><h1>Search your documents.</h1><p>Bring your files together, find passages with keywords or meaning, then compare the results.</p></div>',unsafe_allow_html=True)
     cols=st.columns(3)
     for col,label,val in zip(cols,['Documents','Chunks','Searches'],[counts['documents'],counts['chunks'],counts['searches']]):col.metric(label,val)
-    st.caption(f"Vector store connected · {config.MODEL_NAME} · local inference")
-    st.subheader('Two ways to retrieve')
-    a,b=st.columns(2)
-    with a,st.container(border=True):
-        st.markdown('### 01 · BM25 keyword search');st.write('Ranks passages by query-word matches. Often useful for exact names, labels, and phrases.')
-        st.caption('Ranking score: higher is better')
-    with b,st.container(border=True):
-        st.markdown('### 02 · Semantic search');st.write('Compares locally generated meaning vectors. Can retrieve related wording even when exact terms differ.')
-        st.caption('Cosine distance: lower is better')
+    st.subheader('Your workflow')
+    workflow=[
+        ('Add documents','Build your searchable library.','Upload Documents',counts['documents']>0),
+        ('Run a search','Try a natural-language or exact-term query.','Semantic Search',has_search),
+        ('Compare methods','Run the same query through both rankers.','Compare Search',has_comparison),
+        ('Evaluate results','Review quality metrics and latency.','Evaluation',has_experiment),
+    ]
+    for start in range(0,len(workflow),4):
+        cards=st.columns(min(4,len(workflow)-start))
+        for offset,(title,description,target,complete) in enumerate(workflow[start:start+4]):
+            step=start+offset
+            unlocked=step==0 or workflow[step-1][3]
+            with cards[offset],st.container(border=True):
+                st.caption(f"STEP {step+1:02d}"+(" · COMPLETE" if complete else ''))
+                st.markdown(f"### {title}")
+                st.write(description)
+                if complete:
+                    st.caption('Completed')
+                    if step==len(workflow)-1:
+                        st.button('Review evaluation',key='workflow-review-evaluation',on_click=set_workspace_page,args=(target,))
+                elif unlocked:
+                    st.button('Continue',key=f'workflow-step-{step+1}',type='primary',on_click=set_workspace_page,args=(target,))
+                else:
+                    st.caption(f"Available after step {step} is complete")
     score_guide()
     st.subheader('Recent activity');h=db.history(8)
     if h:
@@ -81,6 +115,8 @@ elif page=='Upload Documents':
                 dest.unlink(missing_ok=True);st.error(f'{f.name}: {e}')
             bar.progress((n+1)/len(files))
     render_upload_inventory(db)
+    if db.counts()['documents']:
+        st.button('Continue to search',type='primary',on_click=set_workspace_page,args=('Semantic Search',))
 elif page=='Document Library':
     page_header('LIBRARY','Document library','Review indexed files and remove documents you no longer need.')
     docs=db.documents()
@@ -95,24 +131,33 @@ elif page in ('Semantic Search','Keyword Search','Compare Search'):
     titles={'Semantic Search':('SEMANTIC RETRIEVAL','Search by meaning','Find passages related to your question, even when wording differs.'),'Keyword Search':('LEXICAL RETRIEVAL','Search by keywords','Find passages with the same important terms as your query.'),'Compare Search':('SIDE-BY-SIDE','Compare methods','Run one query against the same indexed chunks using both ranking methods.')}
     eyebrow,title,description=titles[page];page_header(eyebrow,title,description)
     score_guide()
-    query=st.text_input('Your query',placeholder='Example: How can I protect my computer from hackers?');k=st.slider('Results per method',1,20,config.DEFAULT_TOP_K)
+    query=st.text_input('Your query',value=st.session_state.get('workspace_query',''),key=f"query-{page}",placeholder='Example: How can I protect my computer from hackers?')
+    st.session_state['workspace_query']=query
+    k=st.slider('Results per method',1,20,config.DEFAULT_TOP_K)
+    search_completed=False
     if st.button('Search',type='primary',disabled=not bool(query.strip())):
         if not db.chunks():st.warning('Index a document before searching.')
         elif page=='Compare Search':
             a,b=st.columns(2)
             for col,method in ((a,'Keyword'),(b,'Semantic')):
                 with col:
-                    st.subheader('BM25 · Keyword' if method=='Keyword' else 'Vector · Semantic');items,timing=run_search(db,emb,store,query,method,k)
+                    st.subheader('BM25 · Keyword' if method=='Keyword' else 'Vector · Semantic');items,timing=run_search(db,emb,store,query,method,k,history_method=f'Compare · {method}')
                     st.caption(f"End to end: {timing['end_to_end_ms']:.2f} ms · Retrieval only: {timing['retrieval_ms']:.2f} ms")
                     if items:
                         for i,r in enumerate(items,1):result_card(r,i,method=='Semantic',query)
                     else:st.info('No matching results.')
+            search_completed=True
         else:
             method='Semantic' if page=='Semantic Search' else 'Keyword';items,timing=run_search(db,emb,store,query,method,k)
             st.caption(f"End to end: {timing['end_to_end_ms']:.2f} ms · Retrieval only: {timing['retrieval_ms']:.2f} ms")
             if items:
                 for i,r in enumerate(items,1):result_card(r,i,method=='Semantic',query)
             else:st.info('No matching results.')
+            search_completed=True
+    if search_completed and page in ('Semantic Search','Keyword Search'):
+        st.button('Next: compare both methods',type='primary',on_click=set_workspace_page,args=('Compare Search',))
+    elif search_completed and page=='Compare Search':
+        st.button('Next: evaluate results',type='primary',on_click=set_workspace_page,args=('Evaluation',))
 elif page=='Evaluation':
     st.markdown('## Evaluation workbench');st.caption('Build a repeatable comparison from your indexed corpus, queries, and explicit relevance grades. Model loading and shared SQLite chunk loading are excluded from query timing.')
     with st.expander('Create test query'):

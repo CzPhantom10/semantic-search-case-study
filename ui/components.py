@@ -6,16 +6,20 @@ import pandas as pd
 import streamlit as st
 
 
-def render_navigation():
-    """Render the application workspace selector in the top navigation bar."""
-    options=['Overview','Document Library','Upload Documents','Semantic Search',
+def render_navigation(options=None):
+    """Render the left workspace drawer, including only currently unlocked workflow pages."""
+    options=options or ['Overview','Document Library','Upload Documents','Semantic Search',
         'Keyword Search','Compare Search','Evaluation','Search History','Settings']
     icons={'Overview':'⌂','Document Library':'▤','Upload Documents':'＋',
         'Semantic Search':'◉','Keyword Search':'⌕','Compare Search':'⇄',
         'Evaluation':'▥','Search History':'◷','Settings':'⚙'}
-    return st.selectbox('Workspace',options,
+    selected=st.session_state.get('studio_navigation_page','Overview')
+    if selected not in options:
+        selected='Overview'
+        st.session_state['studio_navigation_page']=selected
+    return st.radio('Workspace',options,index=options.index(selected),
         format_func=lambda page:f"{icons[page]}  {page}",
-        label_visibility='visible',key='studio_navigation_page')
+        label_visibility='collapsed',key='studio_navigation_page')
 
 
 def set_workspace_page(page):

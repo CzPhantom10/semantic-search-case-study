@@ -11,6 +11,7 @@ A local Streamlit case study comparing traditional BM25 keyword retrieval with e
 - PDF extraction with one-based page metadata, DOCX paragraph/table extraction, and TXT extraction with UTF-8 replacement for malformed bytes.
 - Sentence-aware word-window chunks, local `all-MiniLM-L6-v2` embeddings, persistent ChromaDB cosine search, and a BM25 baseline.
 - Comparison and method-specific search, search history, document removal, categorized queries, graded human relevance judgments, Precision@K, Recall@K, MRR, NDCG@K, retrieval-only and end-to-end latency, charts, and per-experiment CSV export.
+- A guided upload → search → compare → evaluate workflow with completion-aware navigation.
 - SQLite metadata/history/judgment persistence; independent Chroma vector persistence.
 - Separate RDFLib triple demonstration (`python utils/rdf_demo.py`) and academic notes distinguishing RDF/OWL reasoning from vector similarity.
 
