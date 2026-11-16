@@ -19,9 +19,6 @@ __pycache__/
 htmlcov/
 .pytest_cache/
 
-# Application secrets
-.streamlit/secrets.toml
-
 # Runtime data
 data/uploads/*
 data/chroma_db/*
@@ -36,3 +33,7 @@ logs/*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Frontend build artefacts
+web/node_modules/
+web/dist/

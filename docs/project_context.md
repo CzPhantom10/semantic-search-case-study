@@ -28,7 +28,7 @@ The project investigates where each approach works well and where it struggles. 
 
 ## Technology and operating constraints
 
-Python and Streamlit; Sentence Transformers; ChromaDB; SQLite; Plotly; PyMuPDF; python-docx; and a local BM25 implementation. The app should work on Windows and CPU without paid API access. CUDA may be optional. Runtime uploads and databases remain local.
+Python and FastAPI; React; Sentence Transformers; ChromaDB; SQLite; PyMuPDF; python-docx; and a local BM25 implementation. The app should work on Windows and CPU without paid API access. CUDA may be optional. Runtime uploads and databases remain local.
 
 Default chunk settings are 500 whitespace-delimited words with 75 words of overlap. They are word counts, not a tokenizer-specific token guarantee. PDF pages are one-based; DOCX and TXT do not have reliable page metadata.
 

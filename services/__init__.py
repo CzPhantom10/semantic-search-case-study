@@ -1,1 +1,1 @@
-"""Application services shared by the Streamlit interface."""
+"""Application services shared by the API layer."""

@@ -4,7 +4,7 @@
 
 The application is presented as a document search product. Its academic motivation, research question, methodology, and reporting rules are documented in [`docs/project_context.md`](docs/project_context.md).
 
-A local Streamlit case study comparing traditional BM25 keyword retrieval with embedding-based semantic retrieval using Sentence Transformers and persistent ChromaDB. Upload your own PDF, DOCX, or TXT corpus, compare rankings side by side, and evaluate both methods against relevance judgments you provide. No paid API key or hosted LLM is required.
+A local case study comparing traditional BM25 keyword retrieval with embedding-based semantic retrieval using Sentence Transformers and persistent ChromaDB. Upload your own PDF, DOCX, or TXT corpus, compare rankings side by side, and evaluate both methods against relevance judgments you provide. No paid API key or hosted LLM is required.
 
 The editable [project report progress draft](report/Semantic_Search_Studio_Project_Report_Progress_Draft.docx) follows the supplied academic report structure and records the implementation status as of 4 November 2026. Empirical comparison results remain pending a study corpus, human relevance judgments, and completed experiments.
 
@@ -33,10 +33,55 @@ py -3.11 -m venv .venv
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 Copy-Item .env.example .env
-streamlit run app.py
 ```
 
-If PowerShell blocks activation, use `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` for that terminal session, or invoke `.\.venv\Scripts\python.exe -m streamlit run app.py` directly. Open the local URL Streamlit prints. On first model use, Sentence Transformers downloads the configured model; thereafter inference is local.
+If PowerShell blocks activation, use `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` for that terminal session, or invoke `.\.venv\Scripts\python.exe` directly. On first model use, Sentence Transformers downloads the configured model; thereafter inference is local.
+
+## Web frontend (React)
+
+The frontend lives in `web/`, served by a FastAPI layer in `api/`. It uses rounded display type, ink
+outlines, hard offset shadows, and a day/night mood toggle that repaints the whole workspace.
+
+The API is transport only: extraction, chunking, embedding, BM25, Chroma, metrics and SQLite stay in
+`core/`, `services/` and `database/`, unchanged.
+
+### Running it
+
+Two processes in development. With the virtual environment active, start the API:
+
+```powershell
+python -m uvicorn api.main:app --reload --port 8000
+```
+
+Then, in a second terminal, the Vite dev server:
+
+```powershell
+cd web
+npm install
+npm run dev
+```
+
+Open the URL Vite prints (http://localhost:5173). Vite proxies `/api` to port 8000.
+
+For a single-process setup, build the frontend once and let FastAPI serve it:
+
+```powershell
+cd web
+npm run build
+cd ..
+python -m uvicorn api.main:app --port 8000
+```
+
+`api/main.py` mounts `web/dist/` when it exists and routes unknown paths to the client router, so the
+whole app is then available on http://localhost:8000. Interactive API docs are at `/docs`.
+
+### Views
+
+Landing page with a search-first hero; then Overview (counters and the guided workflow), Add documents
+(drag-and-drop with per-file outcomes), Library, Semantic search, Keyword search, Compare (both rankers
+side by side, plus rank-overlap and agreement figures), Evaluation workbench (test queries, click-to-grade
+passages, coverage meter, paired experiment, charts and CSV export), History, and Settings. Navigation
+locks the later steps until their prerequisites exist.
 
 ## Tests
 
@@ -57,13 +102,12 @@ Defaults are in `config.py`; copy `.env.example` to `.env` and edit it to set ov
 ## Project layout
 
 ```text
-app.py                    Streamlit navigation, forms, charts and result views
+api/main.py               FastAPI layer serving the React frontend
+web/                      React + Vite frontend (toon design system)
 config.py                 Local paths and environment configuration
 core/                     Extraction, chunking, embeddings, BM25, Chroma, metrics
 services/                 Search orchestration and timing measurements
-ui/                       Shared components and application visual system
 database/db_manager.py    SQLite schema and persistence operations
-ui/                       Shared Streamlit presentation components
 samples/                  Small starter document and query examples
 tests/                    Unit tests for processing, retrieval, metrics, persistence
 docs/                     Architecture, method, evaluation guide, report outline
